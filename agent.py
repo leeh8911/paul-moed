@@ -1,19 +1,33 @@
 import torch
-from transformers import pipeline
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
-# model_name = "nvidia/Llama-3.1-Nemotron-70B-Instruct-HF"
-# model_name = "Qwen/Qwen2.5-1.5B"
-model_name = "google/gemma-2-9b"
-download_path = "D:/jarvis-data/agent"
+model_id = "meta-llama/Llama-3.2-3B-Instruct"
+cache_dir = "D:/jarvis-data/agent"
 
-pipe = pipeline(
-    "text-generation",
-    model=model_name,
-    device="cuda",  # replace with "mps" to run on a Mac device
-    cache_dir=download_path,
+model_name = "Qwen/Qwen2.5-Coder-7B-Instruct"
+
+model = AutoModelForCausalLM.from_pretrained(
+    model_name, torch_dtype="auto", device_map="auto", cache_dir=cache_dir
 )
+tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=cache_dir)
 
-text = "Once upon a time,"
-outputs = pipe(text, max_new_tokens=256)
-response = outputs[0]["generated_text"]
-print(response)
+prompt = "write a quick sort algorithm."
+messages = [
+    {
+        "role": "system",
+        "content": "You are Qwen, created by Alibaba Cloud. You are a helpful assistant.",
+    },
+    {"role": "user", "content": prompt},
+]
+text = tokenizer.apply_chat_template(
+    messages, tokenize=False, add_generation_prompt=True
+)
+model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
+
+generated_ids = model.generate(**model_inputs, max_new_tokens=512)
+generated_ids = [
+    output_ids[len(input_ids) :]
+    for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+]
+
+response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
