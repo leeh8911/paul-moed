@@ -38,18 +38,16 @@ def create_note():
     }
     """
     data = request.json
-    note_type = data.get("type")
-    name = data.get("name")
-    content = data.get("content")
-    metadata = data.get("metadata", {})
 
-    if not note_type or not name or not content:
+    logging.info(f"Create {data.get('type')} type note")
+
+    if not data.get("type") or not data.get("name") or not data.get("content"):
         return (
             jsonify({"error": "Missing required fields: type, name, or content"}),
             400,
         )
 
-    note_id = note_repository.create(note_type, name, content, metadata)
+    note_id = note_repository.create(data)
     return jsonify({"message": "Note created successfully", "id": note_id}), 201
 
 

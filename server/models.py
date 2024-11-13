@@ -17,6 +17,16 @@ class NoteModel(Base):
 
     __mapper_args__ = {"polymorphic_on": type, "polymorphic_identity": "note"}
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "content": self.content,
+            "created": self.created,
+            "updated": self.updated,
+            "type": self.type,
+        }
+
 
 # Memo model
 class MemoModel(NoteModel):
@@ -34,7 +44,11 @@ class EventModel(NoteModel):
     """
 
     __mapper_args__ = {"polymorphic_identity": "event"}
-    date = Column(DateTime, nullable=False)
+    date = Column(DateTime, nullable=True)
+
+    def to_dict(self) -> dict:
+        ret = super().to_dict()
+        ret.update({"date": self.date})
 
 
 # Task model
@@ -46,3 +60,7 @@ class TaskModel(NoteModel):
     __mapper_args__ = {"polymorphic_identity": "task"}
     due_date = Column(DateTime, nullable=True)
     done = Column(Boolean, default=False)
+
+    def to_dict(self) -> dict:
+        ret = super().to_dict()
+        ret.update({"due_date": self.due_date, "done": self.done})

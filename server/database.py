@@ -1,7 +1,10 @@
-from models import NoteModel, MemoModel, EventModel, TaskModel
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 from typing import Optional, List, Dict, Union
+from datetime import datetime
+
+from models import NoteModel, MemoModel, EventModel, TaskModel
+from models import Base  # 모델 정의 파일 경로를 맞춰야 함
 
 
 class NoteRepository:
@@ -17,9 +20,10 @@ class NoteRepository:
         self.Session = sessionmaker(bind=self.engine)
         self.session = self.Session()
 
-    def create(
-        self, note_type: str, name: str, content: str, metadata: Optional[Dict] = None
-    ) -> int:
+        # 테이블 생성
+        Base.metadata.create_all(self.engine)
+
+    def create(self, data: Dict) -> int:
         """
         새로운 노트를 생성하고 데이터베이스에 저장합니다.
         """
@@ -30,11 +34,16 @@ class NoteRepository:
             "task": TaskModel,
         }
 
-        NoteClass = model_mapping.get(note_type.lower())
+        NoteClass = model_mapping.get(data.get("type").lower())
         if not NoteClass:
-            raise ValueError(f"Invalid note type: {note_type}")
+            raise ValueError(f"Invalid note type: {data.get('type')}")
 
-        note = NoteClass(name=name, content=content, **(metadata or {}))
+        if "date" in data:
+            data["date"] = datetime.fromisoformat(data["date"])
+        if "due_date" in data:
+            data["due_date"] = datetime.fromisoformat(data["due_date"])
+
+        note = NoteClass(**data)
         self.session.add(note)
         self.session.commit()
         return note.id

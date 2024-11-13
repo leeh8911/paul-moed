@@ -86,6 +86,13 @@ cd client
 python main.py
 ```
 
+### 5. 테스트 코드
+
+```bash
+cd test
+pytest test_server.py
+```
+
 ---
 
 ## 사용 방법
