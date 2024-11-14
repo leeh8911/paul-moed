@@ -51,12 +51,12 @@ def create_note():
     return jsonify({"message": "Note created successfully", "id": note_id}), 201
 
 
-@app.route("/notes/<int:note_id>", methods=["GET"])
-def get_note(note_id):
+@app.route("/notes/<string:note_type>/<int:note_id>", methods=["GET"])
+def get_note(note_type, note_id):
     """
     특정 ID의 노트를 가져옴
     """
-    note = note_repository.read(note_id)
+    note = note_repository.read(note_id, note_type)
     if not note:
         return jsonify({"error": "Note not found"}), 404
 
@@ -68,8 +68,11 @@ def get_all_notes():
     """
     저장소에 저장된 모든 노트를 반환
     """
-    notes = note_repository.read_all()
-    return jsonify({"notes": notes})
+    notes = []
+    for note_type in note_repository.note_types:
+        notes.extend(note_repository.read_all(note_type))
+
+    return jsonify(notes)
 
 
 @app.route("/notes/<int:note_id>", methods=["PUT"])
@@ -92,12 +95,12 @@ def update_note(note_id):
     return jsonify({"message": "Note updated successfully"})
 
 
-@app.route("/notes/<int:note_id>", methods=["DELETE"])
-def delete_note(note_id):
+@app.route("/notes/<string:note_type>/<int:note_id>", methods=["DELETE"])
+def delete_note(note_type, note_id):
     """
     특정 ID의 노트를 삭제
     """
-    deleted = note_repository.delete(note_id)
+    deleted = note_repository.delete(note_id, note_type)
     if not deleted:
         return jsonify({"error": "Note not found"}), 404
 

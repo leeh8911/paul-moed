@@ -9,6 +9,7 @@ def cleanup():
     """
     Clean up the database before and after each test.
     """
+    print("call cleanup")
     yield
     requests.delete(BASE_URL)
 
@@ -22,30 +23,31 @@ def test_memo_operations(cleanup):
     assert memo_id is not None
 
     # 2. Memo 읽기
-    response = requests.get(f"{BASE_URL}/{memo_id}")
+    response = requests.get(f"{BASE_URL}/memo/{memo_id}")
     assert response.status_code == 200
     memo = response.json()
     assert memo["name"] == "Test Memo"
     assert memo["content"] == "This is a test memo."
 
     # 3. Memo 수정
-    updated_data = {"name": "Updated Memo", "content": "Updated content."}
-    response = requests.put(f"{BASE_URL}/{memo_id}", json=updated_data)
+    memo["name"] = "Updated Memo"
+    memo["content"] = "Updated content."
+    response = requests.put(f"{BASE_URL}/{memo_id}", json=memo)
     assert response.status_code == 200
 
     # 4. Memo 수정 확인
-    response = requests.get(f"{BASE_URL}/{memo_id}")
+    response = requests.get(f"{BASE_URL}/memo/{memo_id}")
     assert response.status_code == 200
     updated_memo = response.json()
     assert updated_memo["name"] == "Updated Memo"
     assert updated_memo["content"] == "Updated content."
 
     # 5. Memo 삭제
-    response = requests.delete(f"{BASE_URL}/{memo_id}")
+    response = requests.delete(f"{BASE_URL}/memo/{memo_id}")
     assert response.status_code == 200
 
     # 6. Memo 삭제 확인
-    response = requests.get(f"{BASE_URL}/{memo_id}")
+    response = requests.get(f"{BASE_URL}/memo/{memo_id}")
     assert response.status_code == 404
 
 
@@ -63,18 +65,18 @@ def test_event_operations(cleanup):
     assert event_id is not None
 
     # 2. Event 읽기
-    response = requests.get(f"{BASE_URL}/{event_id}")
+    response = requests.get(f"{BASE_URL}/event/{event_id}")
     assert response.status_code == 200
     event = response.json()
     assert event["name"] == "Test Event"
     assert event["content"] == "Event details"
 
     # 3. Event 삭제
-    response = requests.delete(f"{BASE_URL}/{event_id}")
+    response = requests.delete(f"{BASE_URL}/event/{event_id}")
     assert response.status_code == 200
 
     # 4. Event 삭제 확인
-    response = requests.get(f"{BASE_URL}/{event_id}")
+    response = requests.get(f"{BASE_URL}/event/{event_id}")
     assert response.status_code == 404
 
 
@@ -93,29 +95,29 @@ def test_task_operations(cleanup):
     assert task_id is not None
 
     # 2. Task 읽기
-    response = requests.get(f"{BASE_URL}/{task_id}")
+    response = requests.get(f"{BASE_URL}/task/{task_id}")
     assert response.status_code == 200
     task = response.json()
     assert task["name"] == "Test Task"
     assert task["content"] == "Task details"
 
     # 3. Task 상태 변경
-    updated_data = {"done": True}
-    response = requests.put(f"{BASE_URL}/{task_id}", json=updated_data)
+    task["done"] = True
+    response = requests.put(f"{BASE_URL}/{task_id}", json=task)
     assert response.status_code == 200
 
     # 4. Task 상태 변경 확인
-    response = requests.get(f"{BASE_URL}/{task_id}")
+    response = requests.get(f"{BASE_URL}/task/{task_id}")
     assert response.status_code == 200
     updated_task = response.json()
     assert updated_task["done"] is True
 
     # 5. Task 삭제
-    response = requests.delete(f"{BASE_URL}/{task_id}")
+    response = requests.delete(f"{BASE_URL}/task/{task_id}")
     assert response.status_code == 200
 
     # 6. Task 삭제 확인
-    response = requests.get(f"{BASE_URL}/{task_id}")
+    response = requests.get(f"{BASE_URL}/task/{task_id}")
     assert response.status_code == 404
 
 
@@ -153,6 +155,8 @@ def test_count_notes(cleanup):
     requests.post(BASE_URL, json=task_data)
 
     # Note 개수 확인
-    response = requests.get(BASE_URL)
+    response = requests.get(f"{BASE_URL}")
+    print(response.json())
     assert response.status_code == 200
+
     assert len(response.json()) == initial_count + 3
