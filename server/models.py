@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, JSON
 from typing import Dict, Any
 from datetime import datetime
 
@@ -12,6 +12,7 @@ class BaseNoteModel(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     type = Column(String, nullable=False)
     name = Column(String, nullable=False)
+    tags = Column(JSON, default=[])  # 리스트 형태의 태그를 JSON으로 저장
     content = Column(String, nullable=False)
     created = Column(DateTime, default=datetime.utcnow)
     updated = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -24,6 +25,7 @@ class BaseNoteModel(Base):
             "id": self.id,
             "type": self.type,
             "name": self.name,
+            "tags": self.tags,
             "content": self.content,
             "created": self.created.isoformat() if self.created else None,
             "updated": self.updated.isoformat() if self.updated else None,

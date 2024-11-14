@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # 노트 저장소 초기화
-note_repository = NoteRepository()
+note_repository: NoteRepository = NoteRepository()
 
 # LLM 핸들러 초기화
 llm_handler = LLMHandler()
@@ -38,8 +38,6 @@ def create_note():
     }
     """
     data = request.json
-
-    logging.info(f"Create {data.get('type')} type note")
 
     if not data.get("type") or not data.get("name") or not data.get("content"):
         return (
@@ -75,6 +73,42 @@ def get_all_notes():
     return jsonify(notes)
 
 
+@app.route("/notes/filter", methods=["GET"])
+def get_filtered_notes():
+    """
+    다양한 조건(id, created, updated, tags)으로 노트를 필터링
+    ---
+    쿼리 매개변수:
+    - `type`: 필수, 노트 타입 ("memo", "event", "task")
+    - `created_start`: 선택, 생성 시작일 (ISO 형식)
+    - `created_end`: 선택, 생성 종료일 (ISO 형식)
+    - `updated_start`: 선택, 업데이트 시작일 (ISO 형식)
+    - `updated_end`: 선택, 업데이트 종료일 (ISO 형식)
+    - `tags`: 선택, 쉼표로 구분된 태그 리스트 (예: "work,project")
+    """
+    note_type = request.args.get("type")
+    if not note_type:
+        return jsonify({"error": "Note type is required"}), 400
+
+    # 쿼리 매개변수 읽기
+    filters = {}
+    if "created_start" in request.args and "created_end" in request.args:
+        filters["created_start"] = request.args["created_start"]
+        filters["created_end"] = request.args["created_end"]
+    if "updated_start" in request.args and "updated_end" in request.args:
+        filters["updated_start"] = request.args["updated_start"]
+        filters["updated_end"] = request.args["updated_end"]
+    if "tags" in request.args:
+        filters["tags"] = request.args["tags"].split(",")
+
+    try:
+        notes = note_repository.get_filtered_notes(note_type, filters)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    return jsonify(notes)
+
+
 @app.route("/notes/<int:note_id>", methods=["PUT"])
 def update_note(note_id):
     """
@@ -101,6 +135,18 @@ def delete_note(note_type, note_id):
     특정 ID의 노트를 삭제
     """
     deleted = note_repository.delete(note_id, note_type)
+    if not deleted:
+        return jsonify({"error": "Note not found"}), 404
+
+    return jsonify({"message": "Note deleted successfully"})
+
+
+@app.route("/notes", methods=["DELETE"])
+def delete_all_notes():
+    """
+    모든 노트를 삭제
+    """
+    deleted = note_repository.delete_all()
     if not deleted:
         return jsonify({"error": "Note not found"}), 404
 
