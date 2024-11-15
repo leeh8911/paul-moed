@@ -1,7 +1,9 @@
 from flask import Flask, request, jsonify
+import logging
+import json
+
 from database import NoteRepository
 from llm import LLMHandler  # LLM 관련 처리 모듈 (추후 구현)
-import logging
 
 # Flask 애플리케이션 초기화
 app = Flask(__name__)
@@ -180,4 +182,18 @@ def interact_with_llm():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    NETWORK_CONFIG_PATH = "config/network_config.json"
+    SERVER_CONFIG_PATH = "config/server_config.json"
+
+    # Config 파일 읽기
+    with open(NETWORK_CONFIG_PATH, "r", encoding="utf-8") as f:
+        network_config = json.load(f)
+
+    with open(SERVER_CONFIG_PATH, "r", encoding="utf-8") as f:
+        server_config = json.load(f)
+
+    app.run(
+        host=network_config["host"],
+        port=network_config["port"],
+        debug=server_config["debug"],
+    )  # 포트및 주소 설정을 config 파일로 저장할 수 있도록 코드 수정

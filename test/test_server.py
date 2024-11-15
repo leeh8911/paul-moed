@@ -1,7 +1,11 @@
 import pytest
 import requests
+import json
 
-BASE_URL = "http://127.0.0.1:5000/notes"
+with open("config/network_config.json", "r", encoding="utf-8") as f:
+    network_config = json.load(f)
+
+BASE_URL = f"{network_config['protocol']}//{network_config['host']}:{network_config['port']}/notes"
 
 
 @pytest.fixture

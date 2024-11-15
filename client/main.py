@@ -8,9 +8,18 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivymd.uix.card import MDCard
 import requests
+import json
 
-# 서버 URL
-BASE_URL = "http://127.0.0.1:5000/notes"
+
+# Config 파일 읽기
+with open("config/network_config.json", "r") as network_config_file:
+    network_config = json.load(network_config_file)
+
+with open("config/client_config.json", "r") as client_config_file:
+    client_config = json.load(client_config_file)
+
+# 네트워크 설정
+server_url = f"{network_config['protocol']}://{network_config['host']}:{network_config['port']}/notes"
 
 
 class NoteCard(MDCard):
@@ -118,7 +127,7 @@ class NoteApp(App):
         if not data["type"] or not data["name"] or not data["content"]:
             return
 
-        response = requests.post(BASE_URL, json=data)
+        response = requests.post(server_url, json=data)
         if response.status_code == 201:
             for field in self.create_inputs.values():
                 field.text = ""
@@ -128,7 +137,7 @@ class NoteApp(App):
         """
         모든 노트를 로드
         """
-        response = requests.get(BASE_URL)
+        response = requests.get(server_url)
         if response.status_code == 200:
             notes = response.json()["notes"]
             self.notes_container.clear_widgets()
