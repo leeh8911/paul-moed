@@ -7,12 +7,14 @@ from kivy.uix.button import Button
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.togglebutton import ToggleButton
 from kivy.uix.popup import Popup
 from kivy.config import Config
 import requests
 import json
 
 from memo_tab import MemoTab
+from todo_tab import TodoTab
 
 Config.set(
     "kivy",
@@ -131,28 +133,6 @@ class CalendarTab(TabbedPanelItem):
                 events = response.json()
                 # TODO: 달력 UI에 일정 추가
                 print(events)
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
-
-
-class TodoTab(TabbedPanelItem):
-    """할 일 탭"""
-
-    def __init__(self, note_url, **kwargs):
-        super().__init__(**kwargs)
-        self.note_url = note_url
-        layout = BoxLayout()
-        self.add_widget(layout)
-        self.load_todos()
-
-    def load_todos(self):
-        """서버에서 할 일 데이터 로드"""
-        try:
-            response = requests.get(f"{self.note_url}/todos")
-            if response.status_code == 200:
-                todos = response.json()
-                # TODO: 태그별 할 일 목록 추가
-                print(todos)
         except requests.exceptions.ConnectionError:
             print("서버에 연결할 수 없습니다.")
 
