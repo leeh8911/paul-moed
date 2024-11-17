@@ -15,6 +15,7 @@ import json
 
 from memo_tab import MemoTab
 from todo_tab import TodoTab
+from repository import Repository
 
 Config.set(
     "kivy",
@@ -36,8 +37,7 @@ class NoteApp(App):
         with open("config/network_config.json", "r", encoding="utf-8") as f:
             network_config = json.load(f)
 
-        self.server_url = f"{network_config['protocol']}://{network_config['host']}:{network_config['port']}"  # 서버 주소
-        self.note_url = f"{self.server_url}/notes"
+        self.repository: Repository = Repository(**network_config)
 
         root = BoxLayout(orientation="vertical")
         self.tab_panel = TabbedPanel()
@@ -97,11 +97,11 @@ class NoteApp(App):
     def add_tab(self, name):
         """탭 추가"""
         if name == "메모":
-            tab = MemoTab(self.note_url)
+            tab = MemoTab(self.repository)
         elif name == "일정":
-            tab = CalendarTab(self.note_url)
+            tab = CalendarTab(self.repository)
         elif name == "할 일":
-            tab = TodoTab(self.note_url)
+            tab = TodoTab(self.repository)
         else:
             return
         tab.text = name
@@ -118,23 +118,16 @@ class NoteApp(App):
 class CalendarTab(TabbedPanelItem):
     """일정 탭"""
 
-    def __init__(self, note_url, **kwargs):
+    def __init__(self, repository, **kwargs):
         super().__init__(**kwargs)
-        self.note_url = note_url
+        self.repository = repository
         layout = BoxLayout()
         self.add_widget(layout)
         self.load_calendar()
 
     def load_calendar(self):
         """서버에서 일정 데이터 로드"""
-        try:
-            response = requests.get(f"{self.note_url}/events")
-            if response.status_code == 200:
-                events = response.json()
-                # TODO: 달력 UI에 일정 추가
-                print(events)
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
+        events = self.repository.filtered_notes(type="event")
 
 
 if __name__ == "__main__":

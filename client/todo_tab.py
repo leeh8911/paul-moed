@@ -11,13 +11,15 @@ from kivy.uix.checkbox import CheckBox
 import requests
 import logging
 
+from repository import Repository
+
 
 class TodoTab(TabbedPanelItem):
     """할 일 탭"""
 
-    def __init__(self, note_url, **kwargs):
+    def __init__(self, repository: Repository, **kwargs):
         super().__init__(**kwargs)
-        self.note_url = note_url
+        self.repository = repository
         self.text = "할 일"
 
         # 메인 레이아웃
@@ -55,16 +57,8 @@ class TodoTab(TabbedPanelItem):
 
     def load_tasks(self):
         """서버에서 할 일 데이터 로드"""
-        try:
-            response = requests.get(f"{self.note_url}/filter?type=task")
-            if response.status_code == 200:
-                tasks = response.json()
-                logging.info(f"TodoTab - number of tasks: {len(tasks)}")
-                self.populate_tasks(tasks)
-            else:
-                print("할 일 데이터 로드 실패")
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
+        tasks = self.repository.filtered_notes(note_type="task")
+        self.populate_tasks(tasks)
 
     def populate_tasks(self, tasks):
         """할 일 섹션 및 태스크 데이터 표시"""
@@ -82,14 +76,14 @@ class TodoTab(TabbedPanelItem):
 
         # 태그별 섹션 추가
         for tag, tasks in tasks_by_tag.items():
-            section = TodoSection(tag, tasks, self.note_url, self)
+            section = TodoSection(tag, tasks, self.repository, self)
             self.section_container.add_widget(section)
 
         # Done 섹션 추가
         if self.show_done:
             done_tasks = [task for task in tasks if task["done"]]
             if done_tasks:
-                done_section = TodoSection("Done", done_tasks, self.note_url, self)
+                done_section = TodoSection("Done", done_tasks, self.repository, self)
                 self.section_container.add_widget(done_section)
 
     def toggle_done_visibility(self, instance):
@@ -102,9 +96,9 @@ class TodoTab(TabbedPanelItem):
         popup_layout = BoxLayout(orientation="vertical", spacing=10, padding=10)
 
         # 사용자 입력 필드
-        name_input = TextInput(hint_text="제목")
-        content_input = TextInput(hint_text="내용")
-        tags_input = TextInput(hint_text="태그 (쉼표로 구분)")
+        name_input = TextInput(hint_text="제목", height=50)
+        content_input = TextInput(hint_text="내용", height=200)
+        tags_input = TextInput(hint_text="태그 (쉼표로 구분)", height=50)
         popup_layout.add_widget(Label(text="할 일 추가"))
         popup_layout.add_widget(name_input)
         popup_layout.add_widget(content_input)
@@ -133,7 +127,7 @@ class TodoTab(TabbedPanelItem):
 
     def add_task(self, name: str, content: str, tags: str, popup):
         """새 할 일 서버에 저장"""
-        if not name:
+        if not name.strip():
             print("할 일 제목은 필수입니다.")
             return
 
@@ -144,15 +138,10 @@ class TodoTab(TabbedPanelItem):
             "tags": [tag.strip() for tag in tags.split(",")],
             "done": False,
         }
+
         try:
-            response = requests.post(f"{self.note_url}", json=task_data)
-            if response.status_code == 201:
-                print("새 할 일 추가 성공")
-                self.load_tasks()  # 데이터 새로고침
-            else:
-                print("새 할 일 추가 실패")
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
+            self.repository.new_note(**task_data)
+            self.load_tasks()  # 데이터 새로고침
         finally:
             popup.dismiss()
 
@@ -160,9 +149,9 @@ class TodoTab(TabbedPanelItem):
 class TodoSection(BoxLayout):
     """태그별 할 일 섹션"""
 
-    def __init__(self, tag, tasks, note_url, parent_tab, **kwargs):
+    def __init__(self, tag, tasks, repository, parent_tab, **kwargs):
         super().__init__(orientation="vertical", **kwargs)
-        self.note_url = note_url
+        self.repository = repository
         self.parent_tab = parent_tab
 
         # 섹션 타이틀
@@ -171,17 +160,17 @@ class TodoSection(BoxLayout):
 
         # 태스크 리스트
         for task in tasks:
-            self.add_widget(TaskItem(task, note_url, parent_tab))
+            self.add_widget(TaskItem(task, repository, parent_tab))
 
 
 class TaskItem(BoxLayout):
     """할 일 항목"""
 
-    def __init__(self, task, note_url, parent_tab, **kwargs):
+    def __init__(self, task, repository, parent_tab, **kwargs):
         super().__init__(
             orientation="horizontal", size_hint_y=None, height=50, **kwargs
         )
-        self.note_url = note_url
+        self.repository = repository
         self.parent_tab = parent_tab
         self.task = task
 
@@ -200,14 +189,4 @@ class TaskItem(BoxLayout):
     def update_task_status(self, instance, value):
         """태스크 상태 업데이트"""
         self.task["done"] = value
-        try:
-            response = requests.put(
-                f"{self.note_url}/{self.task['id']}", json=self.task
-            )
-            if response.status_code == 200:
-                print(f"Task '{self.task['name']}' 상태 업데이트 완료.")
-                self.parent_tab.load_tasks()
-            else:
-                print("Task 상태 업데이트 실패.")
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
+        self.repository.update_note(note_id=self.task["id"], **self.task)

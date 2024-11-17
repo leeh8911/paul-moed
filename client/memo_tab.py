@@ -9,13 +9,15 @@ from kivy.uix.popup import Popup
 import requests
 import json
 
+from repository import Repository
+
 
 class MemoTab(TabbedPanelItem):
     """메모 탭"""
 
-    def __init__(self, note_url, **kwargs):
+    def __init__(self, repository: Repository, **kwargs):
         super().__init__(**kwargs)
-        self.note_url = note_url
+        self.repository = repository
 
         layout = BoxLayout(orientation="vertical")
 
@@ -42,14 +44,10 @@ class MemoTab(TabbedPanelItem):
 
     def load_memos(self):
         """서버에서 메모 데이터 로드"""
-        try:
-            response = requests.get(f"{self.note_url}")
-            if response.status_code == 200:
-                memos = response.json()
-                for memo in memos:
-                    self.add_memo_card(memo["name"], memo["content"])
-        except requests.exceptions.ConnectionError:
-            print("서버에 연결할 수 없습니다.")
+
+        memos = self.repository.get_all_notes()
+        for memo in memos:
+            self.add_memo_card(memo["name"], memo["content"])
 
     def add_memo_card(self, name, content):
         """메모 카드 추가"""
@@ -59,7 +57,9 @@ class MemoTab(TabbedPanelItem):
 
     def add_new_memo(self, instance):
         """새 메모 추가"""
-        popup_content = MemoView(note_url=self.note_url, parent_tab=self)
+        popup_content = MemoView(
+            note_url=self.note_url, repository=self.repository, parent_tab=self
+        )
         popup = Popup(
             title="새 메모 추가",
             content=popup_content,
@@ -77,9 +77,10 @@ class MemoTab(TabbedPanelItem):
 class MemoView(BoxLayout):
     """메모 추가/수정 뷰"""
 
-    def __init__(self, note_url, parent_tab, **kwargs):
+    def __init__(self, note_url, repository: Repository, parent_tab, **kwargs):
         super().__init__(orientation="vertical", **kwargs)
         self.note_url = note_url
+        self.repository = repository
         self.parent_tab = parent_tab
         self.popup = None  # 부모 팝업을 참조하기 위해 설정
 
@@ -87,6 +88,9 @@ class MemoView(BoxLayout):
         self.name_input = TextInput(hint_text="제목", size_hint_y=None, height=50)
         self.content_input = TextInput(
             hint_text="내용", multiline=True, size_hint_y=None, height=200
+        )
+        self.tags_input = TextInput(
+            hint_text="태그 (쉼표로 구분)", multiline=True, size_hint_y=None, height=50
         )
 
         # 버튼 레이아웃
@@ -102,12 +106,14 @@ class MemoView(BoxLayout):
         # 메인 레이아웃에 추가
         self.add_widget(self.name_input)
         self.add_widget(self.content_input)
+        self.add_widget(self.tags_input)
         self.add_widget(button_layout)
 
     def save_memo(self, instance):
         """새 메모 저장"""
         name = self.name_input.text
         content = self.content_input.text
+        tags = self.tags_input.text
 
         if not name.strip() or not content.strip():
             print("제목과 내용을 입력하세요!")
@@ -115,6 +121,14 @@ class MemoView(BoxLayout):
 
         # 서버로 데이터 전송
         try:
+            self.repository.new_note(
+                **{
+                    "name": name,
+                    "type": "memo",
+                    "content": content,
+                    "tags": [tag.strip() for tag in tags.split(",")],
+                }
+            )
             response = requests.post(
                 f"{self.note_url}",
                 json={"name": name, "type": "memo", "content": content},
