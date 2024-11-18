@@ -9,7 +9,7 @@ from kivy.uix.popup import Popup
 import requests
 import json
 
-from repository import Repository
+from client.repository import Repository
 
 
 class MemoTab(TabbedPanelItem):

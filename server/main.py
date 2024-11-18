@@ -2,8 +2,8 @@ from flask import Flask, request, jsonify
 import logging
 import json
 
-from database import NoteRepository
-from llm import LLMHandler  # LLM 관련 처리 모듈 (추후 구현)
+from server.database import NoteRepository
+from server.llm import LLMHandler  # LLM 관련 처리 모듈 (추후 구현)
 
 # Flask 애플리케이션 초기화
 app = Flask(__name__)

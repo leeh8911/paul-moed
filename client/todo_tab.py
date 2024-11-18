@@ -11,7 +11,7 @@ from kivy.uix.checkbox import CheckBox
 import requests
 import logging
 
-from repository import Repository
+from client.repository import Repository
 
 
 class TodoTab(TabbedPanelItem):

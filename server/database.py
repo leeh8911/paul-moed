@@ -3,8 +3,8 @@ from sqlalchemy import create_engine
 from typing import Optional, List, Dict, Union, Any
 from datetime import datetime
 
-from models import MemoModel, EventModel, TaskModel
-from models import Base  # 모델 정의 파일 경로를 맞춰야 함
+from server.models import MemoModel, EventModel, TaskModel
+from server.models import Base  # 모델 정의 파일 경로를 맞춰야 함
 
 
 class NoteRepository:
